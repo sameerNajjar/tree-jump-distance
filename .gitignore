@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.tmp
+# native build by-products (the .dll / .so libraries themselves are kept)
+native/*.obj
+native/*.exp
+native/*.lib
+# run outputs
+results/
+# ATGC instances: regenerate with scripts/prepare_atgc.py (checked against inputs.sha256)
+inputs/
