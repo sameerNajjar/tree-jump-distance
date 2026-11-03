@@ -1,0 +1,11 @@
+--- MGR-2.01/build_phylo.c	2006-08-04 06:32:03.000000000 +0300
++++ MGR-2.01/build_phylo.c	2026-11-02 21:37:45.690965900 +0200
+@@ -1834,7 +1834,7 @@
+ 		leaves[treemem->new_node]=1;
+ 		 
+ 		 // update phylip_tree
+-		sprintf(tmp, "%d", treemem->new_node);
++		sprintf(tmp, "%d", treemem->new_node + 1);	/* topology numbers are 1-based */
+ 		for(i=0; i<best_pos; i++)
+ 			temp_tree[i] = phylip_tree[i];
+ 		strncat(temp_tree, tmp, strlen(tmp));

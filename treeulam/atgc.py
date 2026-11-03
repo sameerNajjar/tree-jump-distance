@@ -1,4 +1,4 @@
-"""From ATGC files to gene-order permutations and instances.
+"""From ATGC files to gene-order permutations and the full-tree instance.
 
 Input files (ATGC database, Kristensen et al.):
   .pty  tab-separated gene table. A gene line has the gene id (col 0), "start..end"
@@ -19,7 +19,6 @@ Rules (identical to the rc1 package, so earlier results stay comparable):
                degree-2 vertices suppressed, branch lengths ignored.
 """
 import collections
-import random
 import re
 
 from .distance import lis
@@ -96,34 +95,7 @@ def load_dataset(name, pty, tre, cluster="cls", log=print):
                 tre=dict(path=str(tre), sha256=sha256(tre)))
 
 
-def window_starts(n, w, step):
-    """0-based starts; the last window ends at position n even when step does not divide."""
-    starts = list(range(0, n - w + 1, step))
-    if starts[-1] != n - w:
-        starts.append(n - w)
-    return starts
-
-
-def restrict(perms, lo, hi):
-    """Every genome restricted to reference positions lo..hi-1, relabelled 0..hi-lo-1."""
-    return {g: tuple(s - lo for s in p if lo <= s < hi) for g, p in perms.items()}
-
-
-def build_instances(data, windows, subset_sizes, seeds):
-    """The three families: F (full tree, all genes), W (windows, full tree), S (subtrees)."""
-    name, n, phylo = data["name"], data["n"], data["phylo"]
-    out = [make_instance(f"{name}/F", name, "full", data["gene_ids"], phylo, data["perms"])]
-    for w, step in windows:
-        for lo in window_starts(n, w, step):
-            out.append(make_instance(
-                f"{name}/W{w}/{lo + 1:04d}", name, "window", data["gene_ids"][lo:lo + w], phylo,
-                restrict(data["perms"], lo, lo + w), window=dict(start=lo + 1, end=lo + w)))
-    for seed in seeds:
-        order = list(data["names"])
-        random.Random(seed).shuffle(order)
-        for k in subset_sizes:
-            chosen = sorted(order[:k])
-            out.append(make_instance(
-                f"{name}/S{k}/seed{seed}", name, "subtree", data["gene_ids"], induced(phylo, chosen),
-                {g: data["perms"][g] for g in chosen}, subset=dict(seed=seed, size=k)))
-    return out
+def full_instance(data):
+    """The cluster's whole tree on all its core genes (instance id <name>/F)."""
+    return make_instance(f"{data['name']}/F", data["name"], "full", data["gene_ids"], data["phylo"],
+                         data["perms"])

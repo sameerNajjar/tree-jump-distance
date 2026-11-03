@@ -3,7 +3,7 @@
 Code for the paper of this title by Sameer Najjar: approximation algorithms, lower
 bounds and an exact FPT solver for the Tree Ulam Median problem. It runs on your own
 tree and gene orders, and includes the scripts that rebuild and rerun the
-experiments on two ATGC bacterial datasets.
+experiments on 22 complete ATGC bacterial trees.
 
 **Problem.** The input is an unrooted tree whose leaves carry permutations of the same
 n genes. The task is to label every internal vertex with a permutation so that the
@@ -92,13 +92,13 @@ In the labels, gene i is `gene_ids[i-1]` of the instance file.
 **Limits.**
 
 - The polynomial methods are fast on hundreds of genes and genomes.
-- The time of the exact search grows quickly with the optimal cost. Our experiments
-  settled most instances with a cost up to about 80 within 120 s; with a few hundred
-  genes it usually stops on TIMEOUT. A TIMEOUT is never reported as NO, and the
-  record then holds the best labeling and the proven lower bound.
+- The time of the exact search grows quickly with the optimal cost. On the 22 ATGC
+  trees, with 3600 s each, it answered NO on 8, stopped on TIMEOUT on 13 and on the
+  candidate limit (CAP) on 1. A TIMEOUT is never reported as NO, and the record then
+  holds the best labeling and the proven lower bound.
 - The 7/4 guarantee applies to binary trees; on other trees the method still returns
   a valid labeling.
-- For many instances, put the instance files in one folder and use
+- For many trees, put the instance files in one folder and use
   `scripts/run_all.py` (parallel, resumable) and `scripts/summarize.py`.
 
 ## Contents
@@ -113,12 +113,12 @@ In the labels, gene i is `gene_ids[i-1]` of the instance file.
 | `treeulam/packing.py` | path/tripod packing bound with witness |
 | `treeulam/exact.py` | exact decision procedure (kernel + weighted search), solution lifting |
 | `treeulam/native.py` | ctypes interface to `native/` |
-| `treeulam/atgc.py` | ATGC files → permutations and instances |
+| `treeulam/atgc.py` | ATGC files → permutations and the full-tree instance |
 | `treeulam/instance.py` | instance schema, loading, validation |
 | `treeulam/solve.py` | all methods on one instance → checked result record |
 | `native/` | C++ sources of the two native libraries, with Windows x64 builds |
 | `scripts/make_instance.py` | your own Newick tree + gene orders → instance file |
-| `scripts/prepare_atgc.py` | build `inputs/<dataset>/` from the raw ATGC files and check it against `inputs.sha256` |
+| `scripts/prepare_atgc.py` | build `inputs/<cluster>/F.json` from the raw ATGC files and check it against `inputs.sha256` |
 | `scripts/solve.py` | solve one instance |
 | `scripts/run_all.py` | parallel campaign with resume |
 | `scripts/check.py` | independent checker (standard library only) |
@@ -127,7 +127,9 @@ In the labels, gene i is `gene_ids[i-1]` of the instance file.
 | `tests/test_small.py` | brute-force tests on small random instances |
 | `tests/test_yes_path.py` | exact search at D = OPT on certified optima; every answer must be YES with cost OPT |
 | `examples/` | a small example tree and gene-order file |
-| `inputs.sha256` | checksums of the 608 ATGC input files used in the experiments; the inputs themselves are not in the repository |
+| `inputs.sha256` | checksums of the 22 full-tree instances (`F.json`) used in the experiments; the instances themselves are not in the repository |
+| `atgc25_clusters.tsv` | the 20 atgc-25 clusters added to ATGC0006 and ATGC0093, with archive, gene-table and tree checksums |
+| `baselines/` | MGR 2.01 and SCJ on the same fixed trees, scored in Ulam cost ([baselines/README.md](baselines/README.md)) |
 
 **Platforms.** Tested on 64-bit Windows with Python 3.13.15 and NumPy 2.5.2, using
 both the shipped DLLs and DLLs rebuilt by `scripts/build_native.py` with Visual Studio.
@@ -137,8 +139,12 @@ or clang++. Those platforms have not been tested.
 ## Data
 
 The raw data come from the ATGC database (Alignable Tight Genomic Clusters),
-release atgc-25: <https://ftp.ncbi.nih.gov/pub/wolf/ATGC/atgc-25/>. Two clusters are
-used. From each cluster folder you need the gene table (`.pty`) and the tree (`.tre`).
+release atgc-25: <https://ftp.ncbi.nih.gov/pub/wolf/ATGC/atgc-25/>. The evaluation
+uses 22 clusters. From each cluster you need the gene table (`.pty`) and the tree
+(`.tre`). ATGC0006 and ATGC0093 use the files below. The other 20 are listed with
+their checksums in [atgc25_clusters.tsv](atgc25_clusters.tsv); from each archive
+`data.ATGCnnnn.tgz` they use `ATGCnnnn/atgc.pty` and the cluster's own tree
+`ATGCnnnn/atgc.iq.r.lab.tre`.
 
 | Dataset | File used here | SHA-256 |
 |---|---|---|
@@ -149,8 +155,8 @@ used. From each cluster folder you need the gene table (`.pty`) and the tree (`.
 
 Check a download against these hashes.
 
-- `scripts/prepare_atgc.py` turns these four files into the experiments' instances
-  under `inputs/` (see [Reproduction](#reproduction)).
+- `scripts/prepare_atgc.py` turns each cluster's two files into its instance
+  `inputs/<cluster>/F.json` (see [Reproduction](#reproduction)).
 - `inputs/<dataset>/dataset.json` records the file names and hashes, every genome's
   linearisation and the full permutations.
 - The generated files are not part of the repository. `inputs.sha256` lists their
@@ -183,6 +189,7 @@ database, release atgc-25. If you use them, please cite ATGC:
    | ATGC0006 | GCF_000007265.1 |
    | ATGC0093 | GCF_000022385.1 |
 
+   The other 20 clusters follow the same rule; `dataset.json` records each reference.
    Its gene order defines symbols 1..n. `gene_ids[i]` is the cluster id of symbol i+1.
 4. **Linearisation.** Chromosomes are circular. Each genome is cut at the rotation and
    read in the direction whose order is closest to the reference in Ulam distance.
@@ -194,39 +201,24 @@ database, release atgc-25. If you use them, please cite ATGC:
    - Leaves are restricted to the genomes and unnamed leaves are dropped.
    - Degree-2 vertices (including the root) are suppressed.
    - Branch lengths are ignored.
-   - Both trees are binary after this step.
+   - All 22 trees are binary after this step.
 
 | Dataset | Genomes | Core genes n | Distinct orders | Multi-contig genomes |
 |---|---|---|---|---|
 | ATGC0006 | 146 | 810 | 11 (136 genomes share one) | 8 |
 | ATGC0093 | 21 | 918 | 15 | 4 |
 
-### Instance families (`scripts/prepare_atgc.py`)
+### Instance (`scripts/prepare_atgc.py`)
 
-The same design is used for both datasets:
-
-| Family | Id | Tree | Genes | Count (0006 / 0093) |
-|---|---|---|---|---|
-| F | `<ds>/F` | full tree | all n | 1 / 1 |
-| W | `<ds>/W<w>/<start>` | full tree | window of w consecutive reference positions, w = 10, 20, 50 with step 5, 10, 25 | 273 / 310 |
-| S | `<ds>/S<k>/seed<r>` | subtree induced by k genomes | all n | 12 / 9 |
-
-- **Windows (W).**
-  - Window starts are 1, 1+step, … .
-  - A final window ending at position n is added when the step does not reach it.
-  - Each genome keeps the window's genes in its own order. They are relabelled
-    1..w in reference order.
-- **Subtrees (S).**
-  - For seed r, the genomes are shuffled with Python's `random.Random(r)`.
-  - The first k of the shuffled list are kept: k = 8, 16, 32, 64 for ATGC0006 and
-    k = 4, 8, 16 for ATGC0093.
-  - The subsets are nested per seed.
+Each cluster gives one instance, `inputs/<cluster>/F.json` with id `<cluster>/F`: the
+cluster's whole tree on all its core genes. There are no gene windows or induced
+subtrees.
 
 Instance file (`tree-ulam-instance/1`, see `treeulam/instance.py`):
 
-- the id, dataset and family;
+- the id, dataset and family (`full`; `user` for `make_instance.py`);
 - `n_genes` and `gene_ids`;
-- `window` or `subset`;
+- `window` and `subset`, always null (kept so that the files match `inputs.sha256`);
 - `tree` as vertex names (leaves = accessions, internal = `i<k>`) and edges;
 - `leaves`: accession → permutation of 1..n.
 
@@ -250,16 +242,17 @@ On every instance, in this order:
      the others seeded). The bound is ⌈cyclic tour length / 2⌉. The witness is the
      leaf order.
    - **Packing.** Choose edge-disjoint leaf paths, valued by the leaf distance, and leaf
-     tripods, valued by the exact three-median. The bound is the maximum total value,
-     found by a tree DP. The witness is the list of pieces.
+     tripods, valued by the exact three-median. A tree DP chooses the pieces; the bound
+     is the total value of the returned pieces, which is a valid lower bound on every
+     labeling. The witness is the list of pieces.
 4. **Exact search.** The exact decision procedure is called at D = U − 1, where U is the
    best cost so far. It runs even when the bounds already meet U, as a cross-check.
    - **YES.** The labeling is carried back to the full tree, checked, and becomes the
      new U. The procedure repeats at the new U − 1 while time remains.
    - **NO.** OPT ≥ U.
    - **TIMEOUT / CAP.** Nothing is concluded.
-   - **Time allowance (defaults).** 120 s in total per window or subtree instance;
-     3600 s per full tree.
+   - **Time allowance.** 3600 s in total per tree (the `run_all.py` default; `solve.py`
+     takes it as `--exact-seconds`).
    - **Settings.** At most 8,000,000 candidates, 1024 MiB of candidate storage, subtree
      feedback on.
 5. **Status.**
@@ -293,24 +286,37 @@ is stored (`algorithms.<name>.labels`, internal vertices only).
 
 ## Reproduction
 
-Download the four raw files listed under Data, then:
+Download the files listed under Data and extract `atgc.pty` and `atgc.iq.r.lab.tre`
+of each cluster in [atgc25_clusters.tsv](atgc25_clusters.tsv) into
+`<atgc25>/ATGCnnnn/`, then:
 
 ```
-python scripts/prepare_atgc.py ATGC0006 <atgc.pty> <atgc.iq.r.lab.tre> inputs/ATGC0006 --subset-sizes 8 16 32 64
-python scripts/prepare_atgc.py ATGC0093 <ATGC0093 gene table .pty> <ATGC0093 tree .tre> inputs/ATGC0093 --subset-sizes 4 8 16
+python scripts/prepare_atgc.py ATGC0006 <atgc.pty> <atgc.iq.r.lab.tre> inputs/ATGC0006
+python scripts/prepare_atgc.py ATGC0093 <ATGC0093 gene table .pty> <ATGC0093 tree .tre> inputs/ATGC0093
+python scripts/prepare_atgc.py ATGC0327 <atgc25>/ATGC0327/atgc.pty <atgc25>/ATGC0327/atgc.iq.r.lab.tre inputs/ATGC0327
+(the same for the other 19 clusters)
 python tests/test_small.py
-python scripts/run_all.py inputs/ATGC0006 inputs/ATGC0093 --out results/campaign --workers 4
-python scripts/check.py results/campaign
-python scripts/summarize.py results/campaign
-python tests/test_yes_path.py results/campaign --out results/yes_path
+python scripts/run_all.py inputs/ATGC* --out results/full --workers 4
+python scripts/check.py results/full --tripod-limit 300
+python scripts/summarize.py results/full
+python tests/test_yes_path.py results/full --out results/yes_path
 ```
 
-- The first two commands build `inputs/` and compare it with `inputs.sha256`. They
-  should report 287 of 287 and 321 of 321 matching files: the experiments' inputs,
-  byte for byte. A mismatch means the downloaded files differ from the ones used
-  here (compare their hashes with the table under Data).
-- On the reference machine, the campaign takes about an hour with 4 workers; most of
-  that is the two full-tree exact searches.
+- Each `prepare_atgc.py` call should report that `F.json` matches `inputs.sha256`:
+  the experiments' instance, byte for byte. A mismatch means the downloaded files
+  differ from the ones used here (compare their hashes with the table under Data and
+  with `atgc25_clusters.tsv`).
+- Every tree gets 3600 s of exact search after the polynomial methods. On the
+  reference machine the 20 atgc-25 trees took about 4.5 hours with 4 workers.
+- At `--tripod-limit 300` the checker recomputes most tripods; `--tripod-limit 450`
+  also recomputes every tripod of the two packing-only certificates (ATGC0057 and
+  ATGC0149).
+- The draw: 20 clusters stratified by genome count (5–10, 11–40, at least 100) with
+  Python's `random.Random(20261102)`, excluding ATGC0006, ATGC0093 and archives over
+  300 MB. Three draws were replaced before solving: ATGC0582 (one order in all
+  genomes) by `random.Random(20261103)`, and ATGC0116 and ATGC0188 (96 and 82
+  distinct orders; the 7/4 candidate set exceeds 31 GB of memory) by
+  `random.Random(20261104)` among clusters with at most 50 distinct orders.
 
 Result records follow the `tree-ulam-result/1` format and contain:
 
@@ -337,3 +343,12 @@ The checker uses only the standard library and shares no code with the solver.
 
 An exact NO cannot be re-derived independently. Certificates that rest on one alone
 are counted.
+
+Use `--tripod-limit 300` (or 450) for the 22 full-tree records, as under
+[Reproduction](#reproduction).
+
+## Baselines (`baselines/`)
+
+MGR 2.01 (reversals) and exact SCJ small parsimony run on the same fixed trees, and
+their ancestors are scored in Ulam cost. See [baselines/README.md](baselines/README.md):
+MGR needs a one-line patch for its fixed-topology mode.
