@@ -8,6 +8,12 @@ writes inputs/ATGC0093/dataset.json (genomes, linearisation, gene ids, full tree
 and one instance file per case under F/, W10/, W20/, W50/ and S<k>/. It then
 compares the files with inputs.sha256, the checksums of the inputs used in the
 experiments, and exits with status 1 if any file differs.
+
+  python scripts/prepare_atgc.py ATGC0327 <cluster>/atgc.pty <cluster>/atgc.iq.r.lab.tre inputs/ATGC0327 --full-only
+
+--full-only writes dataset.json and F.json only: the cluster's whole tree on all its
+core genes, with no windows or subtrees (the full-tree evaluation). Only F.json is
+compared with inputs.sha256 in this mode.
 """
 import argparse
 import json
@@ -26,14 +32,15 @@ ATGC_SOURCE = "https://ftp.ncbi.nih.gov/pub/wolf/ATGC/atgc-25/"
 CHECKSUMS = Path(__file__).resolve().parents[1] / "inputs.sha256"
 
 
-def verify(name, out):
-    """Compare the written files with the published checksums of the experiments' inputs."""
+def verify(name, out, only=None):
+    """Compare the written files with the published checksums of the experiments' inputs.
+    only: restrict the comparison to these relative paths (F.json for --full-only)."""
     if not CHECKSUMS.is_file():
         return True
     want = {}
     for line in CHECKSUMS.read_text(encoding="utf-8").splitlines():
         digest, rel = line.split(maxsplit=1)
-        if rel.startswith(name + "/"):
+        if rel.startswith(name + "/") and (only is None or rel[len(name) + 1:] in only):
             want[rel[len(name) + 1:]] = digest
     if not want:
         print(f"{name}: no published checksums for this dataset name")
@@ -57,8 +64,12 @@ def main():
     ap.add_argument("pty")
     ap.add_argument("tre")
     ap.add_argument("out")
-    ap.add_argument("--subset-sizes", type=int, nargs="+", required=True)
+    ap.add_argument("--subset-sizes", type=int, nargs="+")
+    ap.add_argument("--full-only", action="store_true", help="whole tree on all core genes only")
     args = ap.parse_args()
+    if not args.full_only and not args.subset_sizes:
+        ap.error("--subset-sizes is required unless --full-only is given")
+    windows, sizes, seeds = ((), [], ()) if args.full_only else (WINDOWS, args.subset_sizes, SEEDS)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     began = time.time()
@@ -73,10 +84,10 @@ def main():
         permutations={g: [s + 1 for s in data["perms"][g]] for g in data["names"]},
         distinct_orders=len(set(data["perms"].values())),
         tree=tree_record(data["phylo"]),
-        design=dict(windows=[dict(length=w, step=s) for w, s in WINDOWS],
-                    subset_sizes=args.subset_sizes, subset_seeds=list(SEEDS)))
+        design=dict(windows=[dict(length=w, step=s) for w, s in windows],
+                    subset_sizes=sizes, subset_seeds=list(seeds)))
     (out / "dataset.json").write_text(json.dumps(dataset, indent=1), encoding="utf-8")
-    instances = atgc.build_instances(data, WINDOWS, args.subset_sizes, SEEDS)
+    instances = atgc.build_instances(data, windows, sizes, seeds)
     counts = {}
     for rec in instances:
         rel = Path(*rec["id"].split("/")[1:])
@@ -86,7 +97,7 @@ def main():
         key = rel.parts[0]
         counts[key] = counts.get(key, 0) + 1
     print(f"{args.name}: {len(instances)} instances {counts} in {time.time() - began:.1f} s")
-    return 0 if verify(args.name, out) else 1
+    return 0 if verify(args.name, out, only=("F.json",) if args.full_only else None) else 1
 
 
 if __name__ == "__main__":

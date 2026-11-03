@@ -38,9 +38,10 @@ def jobs_for(dirs, out, exact_seconds, exact_full):
             rel = f.relative_to(d.parent)
             jobs.append(dict(instance=f, result=out / rel, family=family,
                              exact=exact_full if family == "full" else exact_seconds))
-    # long jobs first, so the full trees overlap with the many short ones
+    # long jobs first, so the full trees overlap with the many short ones;
+    # other families (such as "user" from make_instance.py) run last
     order = {"full": 0, "subtree": 1, "window": 2}
-    return sorted(jobs, key=lambda j: order[j["family"]])
+    return sorted(jobs, key=lambda j: order.get(j["family"], len(order)))
 
 
 def finished(path, retry):

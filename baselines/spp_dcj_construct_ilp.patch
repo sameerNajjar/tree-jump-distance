@@ -1,0 +1,11 @@
+--- construct_ilp.orig.py	2026-10-25 00:24:40.643838536 +0300
++++ spp_dcj/construct_ilp.py	2026-10-25 00:24:40.657992748 +0300
+@@ -611,7 +611,7 @@
+                 'and {}').format(child, parent))
+         genomes = [child,parent]
+         if (child, parent) in circ_sings:
+-            for j in range(len(circ_singletons[(child, parent)])):
++            for j in range(len(circ_sings[(child, parent)])):  # patched: was circ_singletons (NameError)
+                 print('rms{sep}{te}{sep}{j}'.format(sep=du.SEP,te=tree_edge,j=j))
+         for v,data in G.nodes(data=True):
+             print("z{sep}{te}{sep}{v}".format(sep=du.SEP,v=v,te=tree_edge),file=out)
