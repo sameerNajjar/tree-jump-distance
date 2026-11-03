@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the exact search's YES path on certified optima.
 
-  python tests/test_yes_path.py results/campaign --out results/yes_path --seconds 120 --workers 4
+  python tests/test_yes_path.py results/full --out results/yes_path --seconds 120 --workers 4
 
 For every OPTIMAL record of a campaign, the exact decision procedure runs at
 D = OPT. The answer must be YES (or an honest TIMEOUT / CAP), never NO. A YES

@@ -76,7 +76,7 @@ def main():
         leaves = {g: rng.choice(orders) for g in names}
         if len(set(leaves.values())) == 1:
             continue
-        rec = make_instance(f"test/{case}", "test", "subtree", [f"x{i}" for i in range(n)], t, leaves)
+        rec = make_instance(f"test/{case}", "test", "full", [f"x{i}" for i in range(n)], t, leaves)
         inst = Instance(rec)
         t, leaf_seq = inst.tree, inst.leaf_seq
         opt = brute_opt(t, leaf_seq, n)

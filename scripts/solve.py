@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Solve one instance file and write its result record.
 
-  python scripts/solve.py inputs/ATGC0093/W20/0011.json results/ATGC0093/W20/0011.json --exact-seconds 120
+  python scripts/solve.py inputs/ATGC0093/F.json results/full/ATGC0093/F.json --exact-seconds 3600
 """
 import argparse
 import json

@@ -5,7 +5,7 @@
       --mgr path/to/MGR --out results/baselines ATGC0327 ATGC0835 ...
 
 --data holds one folder per cluster with its atgc.pty (from data.ATGCnnnn.tgz);
---inputs holds the instances made by scripts/prepare_atgc.py --full-only; --records
+--inputs holds the instances made by scripts/prepare_atgc.py; --records
 holds our solver's results (scripts/run_all.py), used for the comparison only.
 
 Every method gets the same input as our solver: the cluster's own tree and the
@@ -199,7 +199,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("clusters", nargs="+")
     ap.add_argument("--data", required=True, help="folder with one atgc-25 cluster folder each")
-    ap.add_argument("--inputs", required=True, help="instances from prepare_atgc.py --full-only")
+    ap.add_argument("--inputs", required=True, help="instances from prepare_atgc.py")
     ap.add_argument("--records", required=True, help="our solver's results")
     ap.add_argument("--mgr", required=True, help="MGR 2.01 binary built with mgr_fixed_topology.patch")
     ap.add_argument("--out", required=True)

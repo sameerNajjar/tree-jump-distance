@@ -3,13 +3,13 @@
 An instance is one tree with a gene order at every leaf:
 
   schema      "tree-ulam-instance/1"
-  id          e.g. "ATGC0093/W20/0411" (family code, window length, 1-based start)
+  id          "<dataset>/F" for an ATGC cluster, "<dataset>/<file stem>" from make_instance.py
   dataset     source dataset name
-  family      "full" | "window" | "subtree"
+  family      "full" (an ATGC cluster's whole tree) or "user" (make_instance.py)
   n_genes     n, the alphabet size; leaf orders are permutations of 1..n
   gene_ids    the ATGC cluster id of symbol 1..n
-  window      {"start": s, "end": e} (1-based, inclusive, reference positions) or null
-  subset      {"seed": r, "size": k} or null
+  window      always null (kept so that F.json files match inputs.sha256)
+  subset      always null (likewise)
   tree        {"vertices": [...], "edges": [[u, v], ...]}; leaves are genome names,
               internal vertices "i<k>"; unrooted, no degree-2 vertices, no lengths
   leaves      genome -> permutation of 1..n
@@ -32,11 +32,11 @@ def tree_record(t):
                 edges=sorted([name[u], name[v]] for u, v in t.edges()))
 
 
-def make_instance(iid, dataset, family, gene_ids, tree, leaves, window=None, subset=None, source=None):
+def make_instance(iid, dataset, family, gene_ids, tree, leaves, source=None):
     """leaves: genome -> 0-based permutation of range(len(gene_ids))."""
     n = len(gene_ids)
     rec = dict(schema=SCHEMA, id=iid, dataset=dataset, family=family, n_genes=n,
-               gene_ids=list(gene_ids), window=window, subset=subset, tree=tree_record(tree),
+               gene_ids=list(gene_ids), window=None, subset=None, tree=tree_record(tree),
                leaves={g: [s + 1 for s in leaves[g]] for g in sorted(leaves)})
     if source:
         rec["source"] = source

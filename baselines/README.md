@@ -58,11 +58,11 @@ these tables compare Ulam cost only; they do not rank the methods on their own m
 
 ## Running
 
-ATGC (after `scripts/prepare_atgc.py --full-only` and `scripts/run_all.py`; see the
+ATGC (after `scripts/prepare_atgc.py` and `scripts/run_all.py`; see the
 main README):
 
 ```
-python baselines/run_atgc.py --data <atgc25> --inputs inputs_full --records results/full \
+python baselines/run_atgc.py --data <atgc25> --inputs inputs --records results/full \
     --mgr <path to patched MGR> --out results/baselines \
     ATGC0835 ATGC0327 ATGC0868 ATGC0625 ATGC0737 ATGC0421 ATGC0874
 ```

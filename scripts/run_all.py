@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Run a campaign: every instance under the input folders, in parallel processes.
+"""Run a campaign: every full-tree instance under the input folders, in parallel processes.
 
-  python scripts/run_all.py inputs/ATGC0006 inputs/ATGC0093 --out results/campaign \
-      --workers 4 --exact-seconds 120 --exact-seconds-full 3600
+  python scripts/run_all.py inputs/ATGC* --out results/full --workers 4 --exact-seconds 3600
 
 Each instance runs in its own process (scripts/solve.py), so memory is returned
 after every instance. A process that exceeds its exact allowance plus --grace
@@ -27,21 +26,16 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def jobs_for(dirs, out, exact_seconds, exact_full):
+def jobs_for(dirs, out, exact_seconds):
     jobs = []
     for d in dirs:
         d = Path(d)
         for f in sorted(d.rglob("*.json")):
             if f.name == "dataset.json":
                 continue
-            family = json.loads(f.read_text(encoding="utf-8"))["family"]
             rel = f.relative_to(d.parent)
-            jobs.append(dict(instance=f, result=out / rel, family=family,
-                             exact=exact_full if family == "full" else exact_seconds))
-    # long jobs first, so the full trees overlap with the many short ones;
-    # other families (such as "user" from make_instance.py) run last
-    order = {"full": 0, "subtree": 1, "window": 2}
-    return sorted(jobs, key=lambda j: order.get(j["family"], len(order)))
+            jobs.append(dict(instance=f, result=out / rel, exact=exact_seconds))
+    return jobs
 
 
 def finished(path, retry):
@@ -83,8 +77,7 @@ def main():
     ap.add_argument("inputs", nargs="+")
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=4)
-    ap.add_argument("--exact-seconds", type=float, default=120)
-    ap.add_argument("--exact-seconds-full", type=float, default=3600)
+    ap.add_argument("--exact-seconds", type=float, default=3600, help="exact search allowance per tree")
     ap.add_argument("--grace", type=float, default=1800,
                     help="seconds allowed for the polynomial methods and bookkeeping")
     ap.add_argument("--retry", action="store_true")
@@ -99,15 +92,13 @@ def main():
         logf.write(line + "\n")
         logf.flush()
 
-    jobs = [j for j in jobs_for([Path(d).resolve() for d in args.inputs], out,
-                                args.exact_seconds, args.exact_seconds_full)
+    jobs = [j for j in jobs_for([Path(d).resolve() for d in args.inputs], out, args.exact_seconds)
             if not finished(j["result"], args.retry)]
     code = sorted(p for p in (ROOT / "treeulam").glob("*.py")) + \
         sorted(p for p in (ROOT / "native").glob("*") if p.suffix in (".cpp", ".dll", ".so")) + \
         [ROOT / "scripts" / "solve.py", ROOT / "scripts" / "run_all.py"]
     manifest = dict(started=time.strftime("%Y-%m-%d %H:%M:%S"), inputs=[str(d) for d in args.inputs],
-                    settings=dict(workers=args.workers, exact_seconds=args.exact_seconds,
-                                  exact_seconds_full=args.exact_seconds_full, grace=args.grace),
+                    settings=dict(workers=args.workers, exact_seconds=args.exact_seconds, grace=args.grace),
                     code={str(p.relative_to(ROOT)).replace("\\", "/"): sha256(p) for p in code},
                     python=platform.python_version(), platform=platform.platform(),
                     cpu_count=os.cpu_count(), pending=len(jobs))
